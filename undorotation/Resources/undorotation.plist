@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Select the mode for the tweak.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>isEnabled</string>
+			<key>label</key>
+			<string>Enable</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>mode</string>
+			<key>label</key>
+			<string>Mode</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Undo Rotation Only</string>
+					<string>Lock Orientation Only</string>
+					<string>Undo Rotation and Lock Orientation</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+				</array>
+			<key>default</key>
+			<integer>2</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Display Seconds</string>
+			<key>footerText</key>
+			<string>Set custom time that the button is displayed for (recommend 3-5).</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<integer>5</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>displaySeconds</string>
+			<key>min</key>
+			<integer>1</integer>
+			<key>max</key>
+			<integer>10</integer>
+			<key>showValue</key>
+			<true/>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Button Opacity</string>
+			<key>footerText</key>
+			<string>Set custom opacity for the button.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>default</key>
+			<real>0.8</real>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>buttonOpacity</string>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Button Position</string>
+			<key>footerText</key>
+			<string>Select the corner that the button should be positioned at.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>buttonCorner</string>
+			<key>label</key>
+			<string>Position</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>validTitles</key>
+				<array>
+					<string>Top Left</string>
+					<string>Top Right</string>
+					<string>Bottom Left</string>
+					<string>Bottom Right</string>
+				</array>
+			<key>validValues</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+					<integer>2</integer>
+					<integer>3</integer>
+				</array>
+			<key>default</key>
+			<integer>0</integer>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Extra</string>
+			<key>footerText</key>
+			<string>Undo "Undo Rotation" enables the ability to undo your undo rotation.
+Current Orientation displays the button on view change.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>isUndoEnabled</string>
+			<key>label</key>
+			<string>Undo "Undo Rotation"</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>isCurrentEnabled</string>
+			<key>label</key>
+			<string>Current Orientation</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Credits</string>
+			<key>footerText</key>
+			<string>Enjoy the tweak :)</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>email</string>
+			<key>label</key>
+			<string>Email Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>donate</string>
+			<key>label</key>
+			<string>Donate</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>action</key>
+			<string>follow</string>
+			<key>label</key>
+			<string>Follow on twitter</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerAlignment</key>
+			<integer>1</integer>
+			<key>footerText</key>
+			<string>UndoRotation © 2016 DGh0st</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Undo Rotation</string>
+</dict>
+</plist>
