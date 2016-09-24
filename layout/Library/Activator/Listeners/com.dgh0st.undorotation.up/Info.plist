@@ -1,0 +1,6 @@
+{
+	group = "UndoRotation";
+	title = "UndoRotation - Up";
+	description = "Rotate device orientation to up of the current one.";
+	"compatible-modes" = ("springboard", "application");
+}

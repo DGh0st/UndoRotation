@@ -1,0 +1,6 @@
+{
+	group = "UndoRotation";
+	title = "UndoRotation - Landscape Left";
+	description = "Rotate orientation to landscape left.";
+	"compatible-modes" = ("springboard", "application");
+}

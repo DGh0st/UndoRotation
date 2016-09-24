@@ -1,0 +1,6 @@
+{
+	group = "UndoRotation";
+	title = "UndoRotation - Portrait";
+	description = "Rotate orientation to portrait.";
+	"compatible-modes" = ("springboard", "application");
+}

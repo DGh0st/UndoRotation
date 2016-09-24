@@ -1,0 +1,6 @@
+{
+	group = "UndoRotation";
+	title = "UndoRotation - Left";
+	description = "Rotate device orientation to left of the current one.";
+	"compatible-modes" = ("springboard", "application");
+}
