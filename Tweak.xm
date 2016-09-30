@@ -12,17 +12,26 @@
 -(void)setOrientation:(NSInteger)arg1;
 @end
 
-@interface DGUndoRotationListener : NSObject <LAListener>
+@interface UIViewController (UndoRotation)
+-(id)storyboardIdentifier;
+-(void)setStoryboardIdentifier:(id)arg1 ;
+@end
+
+@interface DGUndoRotationListener : NSObject <LAListener> {
+	UIAlertController *alert;
+	UIWindow *window;
+}
 +(DGUndoRotationListener *)sharedInstance;
 @end
 
 @interface DGUndoRotation : NSObject {
-@private
 	UIButton *_undoButton;
 	NSInteger _currentDisplayedMode; // -1 = error, 0 = undo, 1 = lock, 2 = both
 	NSInteger _fromOrientation;
 	CGFloat _secondsVisible;
 }
++(DGUndoRotation *)sharedInstance;
+-(void)forceHide;
 @end
 
 // notifications, preference and bundles
@@ -46,6 +55,8 @@
 #define kButtonOpacity @"buttonOpacity"
 #define kButtonCorner @"buttonCorner"
 #define kAltModePrefix @"AltMode-"
+#define kWhitelsitPrefix @"WhiteListApp-"
+#define kHomescreenEnabled @"isHomescreenEnabled"
 
 // Activator listener names
 #define kOrientationListenerUp @"com.dgh0st.undorotation.up"
@@ -55,6 +66,7 @@
 #define kOrientationListenerPortraitUpsideDown @"com.dgh0st.undorotation.portraitupsidedown"
 #define kOrientationListenerLandscapeRight @"com.dgh0st.undorotation.landscaperight"
 #define kOrientationListenerLandscapeLeft @"com.dgh0st.undorotation.landscapeleft"
+#define kUndoRotationListenerControlWindow @"com.dgh0st.undorotation.controlwindow"
 
 // Activator listener notification to application
 #define kOrientationNotificationListenerUp (CFStringRef)@"com.dgh0st.undorotation.uprotate"
@@ -64,9 +76,12 @@
 #define kOrientationNotificationListenerPortraitUpsideDown (CFStringRef)@"com.dgh0st.undorotation.portraitupsidedownrotate"
 #define kOrientationNotificationListenerLandscapeRight (CFStringRef)@"com.dgh0st.undorotation.landscaperightrotate"
 #define kOrientationNotificationListenerLandscapeLeft (CFStringRef)@"com.dgh0st.undorotation.landscapeleftrotate"
+#define kOrientationNotificationLockOrUnlock (CFStringRef)@"com.dgh0st.undorotation.lockorunlock"
+#define kControlWindowNotificationToggle (CFStringRef)@"com.dgh0st.undorotation.controlwindowtoggle"
 
 BOOL isShowing = NO;
-DGUndoRotation *temp = nil;
+BOOL isControlWindowVisible = NO;
+//DGUndoRotation *temp = nil;
 NSInteger resetToOrientation = -1;
 NSDictionary *prefs = nil;
 
@@ -91,6 +106,13 @@ static void preferencesChanged() {
 	reloadPrefs();
 }
 
+static void toggleControlWindowVisibility() {
+	if (isShowing && [DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] forceHide];
+	}
+	isControlWindowVisible = !isControlWindowVisible;
+}
+
 static BOOL boolValueForKey(NSString *key, BOOL defaultValue) {
 	return (prefs && [prefs objectForKey:key]) ? [[prefs objectForKey:key] boolValue] : defaultValue;
 }
@@ -103,18 +125,18 @@ static CGFloat doubleValueForKey(NSString *key, CGFloat defaultValue) {
 	return (prefs && [prefs objectForKey:key]) ? [[prefs objectForKey:key] floatValue] : defaultValue;
 }
 
-static BOOL getPerApp(NSString *appId, NSString *prefix) {
+static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 	if (prefs) {
 	    for (NSString *key in [prefs allKeys]) {
 			if ([key hasPrefix:prefix]) {
 			    NSString *tempId = [key substringFromIndex:[prefix length]];
 			    if ([tempId isEqualToString:appId]) {
-			    	return [prefs objectForKey:key] ? [[prefs objectForKey:key] boolValue] : NO;
+			    	return [prefs objectForKey:key] ? [[prefs objectForKey:key] boolValue] : defaultValue;
 			    }
 			}
 	   	}
 	}
-    return NO;
+    return defaultValue;
 }
 
 @implementation DGUndoRotationListener
@@ -127,7 +149,140 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 	return sharedObject;
 }
 -(id)init {
-	return (self = [super init]);
+	if ((self = [super init])) {
+		alert = nil;
+		window = nil;
+	}
+	return self;
+}
+-(void)sendLeftNotificaton {
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerLeft, NULL, NULL, YES);
+	if (alert) {
+		[alert dismissViewControllerAnimated:YES completion:nil];
+		alert = nil;
+	}
+	if (window) {
+		[window release];
+		window = nil;
+	}
+}
+-(void)sendRightNotificaton {
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerRight, NULL, NULL, YES);
+	if (alert) {
+		[alert dismissViewControllerAnimated:YES completion:nil];
+		alert = nil;
+	}
+	if (window) {
+		[window release];
+		window = nil;
+	}
+}
+-(void)sendUpNotificaton {
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerUp, NULL, NULL, YES);
+	if (alert) {
+		[alert dismissViewControllerAnimated:YES completion:nil];
+		alert = nil;
+	}
+	if (window) {
+		[window release];
+		window = nil;
+	}
+}
+-(void)sendLockOrUnlockNotificaton {
+	UIInterfaceOrientation currentOrientation = [[UIDevice currentDevice] orientation];
+	if (currentOrientation == UIInterfaceOrientationPortrait) {
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerPortrait, NULL, NULL, YES);
+	} else if (currentOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerPortraitUpsideDown, NULL, NULL, YES);
+	} else if (currentOrientation == UIInterfaceOrientationLandscapeLeft) {
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerLandscapeLeft, NULL, NULL, YES);
+	} else if (currentOrientation == UIInterfaceOrientationLandscapeRight) {
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerLandscapeRight, NULL, NULL, YES);
+	}
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationLockOrUnlock, NULL, NULL, YES);
+	if (alert) {
+		[alert dismissViewControllerAnimated:YES completion:nil];
+		alert = nil;
+	}
+	if (window) {
+		[window release];
+		window = nil;
+	}
+}
+-(void)showControlWindow {
+	if (alert) {
+		[alert dismissViewControllerAnimated:YES completion:nil];
+		alert = nil;
+	}
+	alert = [UIAlertController alertControllerWithTitle:@"UndoRotation" message:nil preferredStyle:UIAlertControllerStyleAlert];
+
+	if (window) {
+		[window release];
+		window = nil;
+	}
+	window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+	window.rootViewController = [[UIViewController alloc] init];
+	[window.rootViewController setStoryboardIdentifier:@"UndoRotationViewController"];
+	window.windowLevel = UIWindowLevelAlert + 1;
+
+	UIViewController *v = [[UIViewController alloc] init];
+	[v setStoryboardIdentifier:@"UndoRotationViewController"];
+	v.view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 224, 160)];
+	v.preferredContentSize = CGSizeMake(224, 160);
+	[alert setValue:v forKey:@"contentViewController"];
+
+	// bundle for images
+	NSBundle *bundle = [[NSBundle alloc] initWithPath:kBundlePath];
+
+	// left
+	UIButton *leftButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+	[leftButton addTarget:self action:@selector(sendLeftNotificaton) forControlEvents:UIControlEventTouchUpInside];
+	UIImage *imageLeft = [UIImage imageWithContentsOfFile:[bundle pathForResource:@"undoRotationLeft" ofType:@"png"]];
+	leftButton.frame = CGRectMake(0, 80, 64, 64);
+	[leftButton setBackgroundImage:imageLeft forState:UIControlStateNormal];
+	[v.view addSubview:leftButton];
+
+	// right
+	UIButton *rightButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+	[rightButton addTarget:self action:@selector(sendRightNotificaton) forControlEvents:UIControlEventTouchUpInside];
+	UIImage *imageRight = [UIImage imageWithContentsOfFile:[bundle pathForResource:@"undoRotationRight" ofType:@"png"]];
+	rightButton.frame = CGRectMake(160, 80, 64, 64);
+	[rightButton setBackgroundImage:imageRight forState:UIControlStateNormal];
+	[v.view addSubview:rightButton];
+
+	// up
+	UIButton *upButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+	[upButton addTarget:self action:@selector(sendUpNotificaton) forControlEvents:UIControlEventTouchUpInside];
+	UIImage *imageUp = [UIImage imageWithContentsOfFile:[bundle pathForResource:@"undoRotationUp" ofType:@"png"]];
+	upButton.frame = CGRectMake(80, 0, 64, 64);
+	[upButton setBackgroundImage:imageUp forState:UIControlStateNormal];
+	[v.view addSubview:upButton];
+
+	// lock
+	UIButton *lockButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+	[lockButton addTarget:self action:@selector(sendLockOrUnlockNotificaton) forControlEvents:UIControlEventTouchUpInside];
+	UIImage *imageLock = [UIImage imageWithContentsOfFile:[bundle pathForResource:@"undoRotationLock" ofType:@"png"]];
+	lockButton.frame = CGRectMake(80, 80, 64, 64);
+	[lockButton setBackgroundImage:imageLock forState:UIControlStateNormal];
+	[v.view addSubview:lockButton];
+
+	// cancel button
+	UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler: ^(UIAlertAction *action){
+		alert = nil;
+		if (window) {
+			[window release];
+			window = nil;
+		}
+	}];
+	[alert addAction:cancelAction];
+
+	[window makeKeyAndVisible];
+	[window.rootViewController presentViewController:alert animated:YES completion:nil];
+
+	[bundle release];
+	[v.view release];
+	[v release];
+	[window.rootViewController release];
 }
 -(void)activator:(LAActivator *)activator receiveEvent:(LAEvent *)event {
 	// prevent default ios action
@@ -148,6 +303,8 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerRight, NULL, NULL, YES);
 	} else if ([name isEqualToString:kOrientationListenerLeft]) {
 		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationNotificationListenerLeft, NULL, NULL, YES);
+	} else if ([name isEqualToString:kUndoRotationListenerControlWindow]) {
+		[self showControlWindow];
 	} else {
 		[event setHandled:NO]; // default acion if none of our actions occured
 	}
@@ -155,6 +312,14 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 @end
 
 @implementation DGUndoRotation
++(DGUndoRotation *)sharedInstance {
+	static DGUndoRotation *sharedObject = nil;
+	static dispatch_once_t p = 0;
+	dispatch_once(&p, ^{
+		sharedObject = [[self alloc] init];
+	});
+	return sharedObject;
+}
 -(id)init {
 	self = [super init];
 	if(self != nil) {
@@ -174,6 +339,12 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 }
 -(void)showFromOrientation:(NSInteger)fromOrientation toOrientation:(NSInteger)toOrientation {
 	_fromOrientation = fromOrientation;
+	if (isControlWindowVisible) {
+		return;
+	}
+	if (isShowing) {
+		[self forceHide:_undoButton];
+	}
 	if (!isShowing) {
 		isShowing = YES;
 		// setup button
@@ -188,15 +359,12 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 			[window addSubview:_undoButton];
 			[window bringSubviewToFront:_undoButton];
 		} else {
-			[_undoButton removeFromSuperview];
-			_undoButton = nil;
-			_currentDisplayedMode = -1;
-			isShowing = NO;
+			[self forceHide:_undoButton];
 			return;
 		}
 
 		// after x seconds remove button
-		[self performSelector:@selector(hide) withObject:nil afterDelay:doubleValueForKey(kDisplaySeconds, 5.0) / 5.0];
+		[self performSelector:@selector(forceHide:) withObject:_undoButton afterDelay:doubleValueForKey(kDisplaySeconds, 5.0)];// / 5.0];
 	}
 	_secondsVisible = 0.0;
 	if (_undoButton) {
@@ -278,47 +446,24 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 			[_undoButton setBackgroundImage:image forState:UIControlStateNormal];
 			[_undoButton setAlpha:doubleValueForKey(kButtonOpacity, 0.8)];
 		} else {
-			[_undoButton removeFromSuperview];
-			_undoButton = nil;
-			_currentDisplayedMode = -1;
-			isShowing = NO;
+			[self forceHide:_undoButton];
 		}
 		[bundle release];
 	}
 }
--(void)forceHide {
-	//_secondsVisible = doubleValueForKey(kDisplaySeconds, 5.0);
-	if (_undoButton) {
+-(void)forceHide:(id)object {
+	if (_undoButton && object && [[object class] isEqual:[_undoButton class]] && object == _undoButton) {
 		[_undoButton removeFromSuperview];
 		_undoButton = nil;
 	}
 	_currentDisplayedMode = -1;
 	isShowing = NO;
 }
--(void)hide {
-	if (isShowing) {
-		// remove button if needed
-		CGFloat displaySecs = doubleValueForKey(kDisplaySeconds, 5.0);
-		if (_secondsVisible < displaySecs) {
-			_secondsVisible += displaySecs / 5.0;
-			[self performSelector:@selector(hide) withObject:nil afterDelay:displaySecs / 5.0];
-		} else {
-			if (_undoButton) {
-				[_undoButton removeFromSuperview];
-				_undoButton = nil;
-			}
-			_currentDisplayedMode = -1;
-			isShowing = NO;
-		}
-	}
+-(void)forceHide {
+	[self forceHide:_undoButton];
 }
 -(void)undoRotation:(UIButton *)sender {
 	if (isShowing && sender == _undoButton) {
-		// remove button and undo the rotation
-		if (_undoButton) {
-			[_undoButton removeFromSuperview];
-			_undoButton = nil;
-		}
 		// undo orientation
 		if (_currentDisplayedMode == 0 || _currentDisplayedMode == 2) { // undo or both mode
 			resetToOrientation = _fromOrientation;
@@ -326,27 +471,18 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 		}
 		// lock orietnation
 		if (_currentDisplayedMode == 1 || _currentDisplayedMode == 2) { // lock or both mode
-			if (%c(SBOrientationLockManager)) {
-				if (boolValueForKey(kIsUndoEnabled, NO) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
-					[[%c(SBOrientationLockManager) sharedInstance] unlock];
-				} else {
-					[[%c(SBOrientationLockManager) sharedInstance] lock:[[UIDevice currentDevice] orientation]];
-				}
-			} else {
-				_fromOrientation = [[UIDevice currentDevice] orientation];
-				if (_fromOrientation == UIInterfaceOrientationPortrait) {
-					CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationPortarit, NULL, NULL, YES);
-				} else if (_fromOrientation == UIInterfaceOrientationPortraitUpsideDown) {
-					CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationPortaritUpsideDown, NULL, NULL, YES);
-				} else if (_fromOrientation == UIInterfaceOrientationLandscapeLeft) {
-					CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationLandscapeLeft, NULL, NULL, YES);
-				} else if (_fromOrientation == UIInterfaceOrientationLandscapeRight) {
-					CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationLandscapeRight, NULL, NULL, YES);
-				}
+			_fromOrientation = [[UIDevice currentDevice] orientation];
+			if (_fromOrientation == UIInterfaceOrientationPortrait) {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationPortarit, NULL, NULL, YES);
+			} else if (_fromOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationPortaritUpsideDown, NULL, NULL, YES);
+			} else if (_fromOrientation == UIInterfaceOrientationLandscapeLeft) {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationLandscapeLeft, NULL, NULL, YES);
+			} else if (_fromOrientation == UIInterfaceOrientationLandscapeRight) {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationLockNotificationLandscapeRight, NULL, NULL, YES);
 			}
 		}
-		_currentDisplayedMode = -1;
-		isShowing = NO;
+		[self forceHide:_undoButton];
 	}
 }
 @end
@@ -354,22 +490,26 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 %group applications
 %hook UIViewController
 -(void)didRotateFromInterfaceOrientation:(NSInteger)arg1 {
-	// display tweak button if alternative mode not enabled for this app
 	%orig;
-	if (!getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix)) {
+	// don't do anything if control window is displaying (activator action)
+	if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
+		return;
+	}
+	// display tweak button if alternative mode not enabled for this app
+	if (!getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
 		if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
 			resetToOrientation = -1;
 			return;
 		}
-		if (boolValueForKey(kIsEnabled, YES) && temp) {
-			[temp showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+		if (boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
 		}
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
 	// hide button
-	if (temp) {
-		[temp forceHide];
+	if ([DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] forceHide];
 	}
 	// unlock orientation if enabled
 	if (boolValueForKey(kIsUnlockEnabled, NO)) {
@@ -382,27 +522,35 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 	%orig;
 }
 -(void)viewDidAppear:(BOOL)arg1 {
-	// display current orientation button if needed
 	%orig;
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && temp) {
+	// don't do anything if control window is displaying (activator action)
+	if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
+		return;
+	}
+	// display current orientation button if needed
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
 		NSInteger orientation = [[UIDevice currentDevice] orientation];
-		[temp showFromOrientation:orientation toOrientation:orientation];
+		[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
 	}
 }
 %end
 
 %hook UIDevice
 -(void)setOrientation:(NSInteger)arg1 animated:(BOOL)arg2 {
-	// display tweak button if alternative mode enabled for this app
 	NSInteger lastOrientation = [self orientation];
 	%orig;
-	if (getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix)) {
+	// don't do anything if control window is displaying (activator action)
+	if (isControlWindowVisible) {
+		return;
+	}
+	// display tweak button if alternative mode enabled for this app
+	if (getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
 		if (resetToOrientation == [self orientation] && resetToOrientation == arg1 && !boolValueForKey(kIsUndoEnabled, NO)) {
 			resetToOrientation = -1;
 			return;
 		}
-		if (boolValueForKey(kIsEnabled, YES) && temp && arg1 == [self orientation] && (arg1 != lastOrientation || !boolValueForKey(kIsCurrentEnabled, NO))) {
-			[temp showFromOrientation:lastOrientation toOrientation:arg1];
+		if (boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance] && arg1 == [self orientation] && (arg1 != lastOrientation || !boolValueForKey(kIsCurrentEnabled, NO))) {
+			[[DGUndoRotation sharedInstance] showFromOrientation:lastOrientation toOrientation:arg1];
 		}
 	}
 }
@@ -412,7 +560,14 @@ static BOOL getPerApp(NSString *appId, NSString *prefix) {
 %group lockmanagernotificationcenter
 static inline void lockRotation(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 	// orientation lock callback handler
-	if (name == kOrientationUnlockNotification) {
+	if (name == kOrientationNotificationLockOrUnlock) {
+		if ([[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+			[[%c(SBOrientationLockManager) sharedInstance] unlock];
+		} else {
+			[[%c(SBOrientationLockManager) sharedInstance] lock:[[UIDevice currentDevice] orientation]];
+		}
+		return;
+	} else if (name == kOrientationUnlockNotification) {
 		if ([[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
 			[[%c(SBOrientationLockManager) sharedInstance] unlock];
 		}
@@ -490,20 +645,24 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 %hook SBIconController
 -(void)_didRotateFromInterfaceOrientation:(NSInteger)arg1 {
 	%orig;
+	// don't do anything if control window is visible (activator action)
+	if (isControlWindowVisible) {
+		return;
+	}
 	// do not display button if taking tweak action
 	if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
 		resetToOrientation = -1;
 		return;
 	}
 	// display button if needed
-	if(boolValueForKey(kIsEnabled, YES) && temp) {
-		[temp showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+	if(boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
 	// hide button
-	if (temp) {
-		[temp forceHide];
+	if ([DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] forceHide];
 	}
 	// unlock orientation if needed
 	if (boolValueForKey(kIsUnlockEnabled, NO)) {
@@ -517,8 +676,8 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 }
 -(void)_launchIcon:(id)arg1 {
 	// hide button
-	if (temp) {
-		[temp forceHide];
+	if ([DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] forceHide];
 	}
 	// unlock orientation if needed
 	if (boolValueForKey(kIsUnlockEnabled, NO)) {
@@ -532,8 +691,8 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 }
 -(void)_lockScreenUIWillLock:(id)arg1 {
 	// hide button
-	if (temp) {
-		[temp forceHide];
+	if ([DGUndoRotation sharedInstance]) {
+		[[DGUndoRotation sharedInstance] forceHide];
 	}
 	// unlock orientation if needed
 	if (boolValueForKey(kIsUnlockEnabled, NO)) {
@@ -546,11 +705,15 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	%orig;
 }
 -(void)viewDidAppear:(BOOL)arg1 {
-	// display current orientation button if needed
 	%orig;
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && temp) {
+	// don't do anything if control window is visible (activator action)
+	if (isControlWindowVisible) {
+		return;
+	}
+	// display current orientation button if needed
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
 		NSInteger orientation = [[UIDevice currentDevice] orientation];
-		[temp showFromOrientation:orientation toOrientation:orientation];
+		[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
 	}
 }
 %end
@@ -560,10 +723,6 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	// remove preference notification listener
 	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kSettingsChangedNotification, NULL);
 
-	// dealloc tweak instance
-	[temp release];
-	temp = nil;
-
 	// remove listeners for orientation lock from tweak button
 	if (%c(SBOrientationLockManager)) {
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationLockNotificationPortarit, NULL);
@@ -571,6 +730,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationLockNotificationLandscapeLeft, NULL);
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationLockNotificationLandscapeRight, NULL);
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationUnlockNotification, NULL);
+		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationNotificationLockOrUnlock, NULL);
 	}
 
 	// remove listeners for rotations from activator
@@ -583,6 +743,9 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationNotificationListenerLeft, NULL);
 		CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kOrientationNotificationListenerRight, NULL);
 	}
+
+	// remove controlwindow visibility listener
+	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kControlWindowNotificationToggle, NULL);
 }
 
 %ctor {
@@ -591,7 +754,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)preferencesChanged, kSettingsChangedNotification, NULL, CFNotificationSuspensionBehaviorCoalesce);
 
 	// setup the tweak instance
-	temp = [[%c(DGUndoRotation) alloc] init];
+	[DGUndoRotation sharedInstance];
 
 	// setup notification system to listen for orientation lock from tweak button
 	if (%c(SBOrientationLockManager)) {
@@ -601,6 +764,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)lockRotation, kOrientationLockNotificationLandscapeLeft, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)lockRotation, kOrientationLockNotificationLandscapeRight, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)lockRotation, kOrientationUnlockNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)lockRotation, kOrientationNotificationLockOrUnlock, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	}
 
 	// setup notification system to listen for rotations from activator
@@ -627,12 +791,20 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		[[%c(LAActivator) sharedInstance] registerListener:[DGUndoRotationListener sharedInstance] forName:kOrientationListenerUp];
 		[[%c(LAActivator) sharedInstance] registerListener:[DGUndoRotationListener sharedInstance] forName:kOrientationListenerLeft];
 		[[%c(LAActivator) sharedInstance] registerListener:[DGUndoRotationListener sharedInstance] forName:kOrientationListenerRight];
+		[[%c(LAActivator) sharedInstance] registerListener:[DGUndoRotationListener sharedInstance] forName:kUndoRotationListenerControlWindow];
 	}
 
 	// home screen or application screen
 	if (%c(SBIconController)) {
-		%init(homescreen);
+		if (boolValueForKey(kHomescreenEnabled, YES)) {
+			%init(homescreen);
+		}
 	} else {
-		%init(applications);
+		if (!getPerApp([NSBundle mainBundle].bundleIdentifier, kWhitelsitPrefix, NO)) {
+			%init(applications);
+		}
 	}
+
+	// controlwindow visibility listener
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)toggleControlWindowVisibility, kControlWindowNotificationToggle, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }

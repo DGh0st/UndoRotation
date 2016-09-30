@@ -148,7 +148,9 @@
 			<key>label</key>
 			<string>Specific</string>
 			<key>footerText</key>
-			<string>Enable if you do not see the button in the application.
+			<string>Enable "Alternatie Mode" if you do not see the button in the application.
+Enable the button on homescreen (respring required).
+Whitelist applications to disable button in (does not effect activator actions and application restart is required).
 Note: Current Mode is part of the alternative method and there is no way of disabling it.</string>
 		</dict>
 		<dict>
@@ -164,6 +166,36 @@ Note: Current Mode is part of the alternative method and there is no way of disa
 			<string>/var/mobile/Library/Preferences/com.dgh0st.undorotation.plist</string>
 			<key>ALSettingsKeyPrefix</key>
 			<string>AltMode-</string>
+			<key>ALChangeNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.dgh0st.undorotation</string>
+			<key>key</key>
+			<string>isHomescreenEnabled</string>
+			<key>label</key>
+			<string>Enable Homescreen</string>
+			<key>PostNotification</key>
+			<string>com.dgh0st.undorotation/settingschanged</string>
+		</dict>		
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>bundle</key>
+			<string>AppList</string>
+			<key>isController</key>
+			<true/>
+			<key>label</key>
+			<string>Whitelist</string>
+			<key>ALSettingsPath</key>
+			<string>/var/mobile/Library/Preferences/com.dgh0st.undorotation.plist</string>
+			<key>ALSettingsKeyPrefix</key>
+			<string>WhiteListApp-</string>
 			<key>ALChangeNotification</key>
 			<string>com.dgh0st.undorotation/settingschanged</string>
 		</dict>

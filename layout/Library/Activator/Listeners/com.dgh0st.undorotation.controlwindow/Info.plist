@@ -1,0 +1,6 @@
+{
+	group = "UndoRotation";
+	title = "UndoRotation - Control Window";
+	description = "Display a control window with buttons.";
+	"compatible-modes" = ("springboard", "application");
+}
