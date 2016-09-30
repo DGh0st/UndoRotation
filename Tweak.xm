@@ -795,13 +795,15 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	}
 
 	// home screen or application screen
-	if (%c(SBIconController)) {
-		if (boolValueForKey(kHomescreenEnabled, YES)) {
-			%init(homescreen);
-		}
-	} else {
-		if (!getPerApp([NSBundle mainBundle].bundleIdentifier, kWhitelsitPrefix, NO)) {
-			%init(applications);
+	if (boolValueForKey(kIsEnabled, YES)) {
+		if (%c(SBIconController)) {
+			if (boolValueForKey(kHomescreenEnabled, YES)) {
+				%init(homescreen);
+			}
+		} else {
+			if (!getPerApp([NSBundle mainBundle].bundleIdentifier, kWhitelsitPrefix, NO)) {
+				%init(applications);
+			}
 		}
 	}
 
