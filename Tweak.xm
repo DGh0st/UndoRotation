@@ -491,46 +491,52 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 %hook UIViewController
 -(void)didRotateFromInterfaceOrientation:(NSInteger)arg1 {
 	%orig;
-	// don't do anything if control window is displaying (activator action)
-	if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
-		return;
-	}
-	// display tweak button if alternative mode not enabled for this app
-	if (!getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
-		if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
-			resetToOrientation = -1;
+	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {
+		// don't do anything if control window is displaying (activator action)
+		if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
 			return;
 		}
-		if (boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance]) {
-			[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+		// display tweak button if alternative mode not enabled for this app
+		if (!getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
+			if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
+				resetToOrientation = -1;
+				return;
+			}
+			if ([DGUndoRotation sharedInstance]) {
+				[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+			}
 		}
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
-	// hide button
-	if ([DGUndoRotation sharedInstance]) {
-		[[DGUndoRotation sharedInstance] forceHide];
-	}
-	// unlock orientation if enabled
-	if (boolValueForKey(kIsUnlockEnabled, NO)) {
-		if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
-			[[%c(SBOrientationLockManager) sharedInstance] unlock];
-		} else {
-			CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {	
+		// hide button
+		if ([DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] forceHide];
+		}
+		// unlock orientation if enabled
+		if (boolValueForKey(kIsUnlockEnabled, NO)) {
+			if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+				[[%c(SBOrientationLockManager) sharedInstance] unlock];
+			} else {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+			}
 		}
 	}
 	%orig;
 }
 -(void)viewDidAppear:(BOOL)arg1 {
 	%orig;
-	// don't do anything if control window is displaying (activator action)
-	if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
-		return;
-	}
-	// display current orientation button if needed
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
-		NSInteger orientation = [[UIDevice currentDevice] orientation];
-		[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
+	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {
+		// don't do anything if control window is displaying (activator action)
+		if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
+			return;
+		}
+		// display current orientation button if needed
+		if (boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
+			NSInteger orientation = [[UIDevice currentDevice] orientation];
+			[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
+		}
 	}
 }
 %end
@@ -539,18 +545,20 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 -(void)setOrientation:(NSInteger)arg1 animated:(BOOL)arg2 {
 	NSInteger lastOrientation = [self orientation];
 	%orig;
-	// don't do anything if control window is displaying (activator action)
-	if (isControlWindowVisible) {
-		return;
-	}
-	// display tweak button if alternative mode enabled for this app
-	if (getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
-		if (resetToOrientation == [self orientation] && resetToOrientation == arg1 && !boolValueForKey(kIsUndoEnabled, NO)) {
-			resetToOrientation = -1;
+	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {
+		// don't do anything if control window is displaying (activator action)
+		if (isControlWindowVisible) {
 			return;
 		}
-		if (boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance] && arg1 == [self orientation] && (arg1 != lastOrientation || !boolValueForKey(kIsCurrentEnabled, NO))) {
-			[[DGUndoRotation sharedInstance] showFromOrientation:lastOrientation toOrientation:arg1];
+		// display tweak button if alternative mode enabled for this app
+		if (getPerApp([[NSBundle mainBundle] bundleIdentifier], kAltModePrefix, NO)) {
+			if (resetToOrientation == [self orientation] && resetToOrientation == arg1 && !boolValueForKey(kIsUndoEnabled, NO)) {
+				resetToOrientation = -1;
+				return;
+			}
+			if ([DGUndoRotation sharedInstance] && arg1 == [self orientation] && (arg1 != lastOrientation || !boolValueForKey(kIsCurrentEnabled, NO))) {
+				[[DGUndoRotation sharedInstance] showFromOrientation:lastOrientation toOrientation:arg1];
+			}
 		}
 	}
 }
@@ -645,75 +653,85 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 %hook SBIconController
 -(void)_didRotateFromInterfaceOrientation:(NSInteger)arg1 {
 	%orig;
-	// don't do anything if control window is visible (activator action)
-	if (isControlWindowVisible) {
-		return;
-	}
-	// do not display button if taking tweak action
-	if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
-		resetToOrientation = -1;
-		return;
-	}
-	// display button if needed
-	if(boolValueForKey(kIsEnabled, YES) && [DGUndoRotation sharedInstance]) {
-		[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+		// don't do anything if control window is visible (activator action)
+		if (isControlWindowVisible) {
+			return;
+		}
+		// do not display button if taking tweak action
+		if (resetToOrientation == [[UIDevice currentDevice] orientation] && !boolValueForKey(kIsUndoEnabled, NO)) {
+			resetToOrientation = -1;
+			return;
+		}
+		// display button if needed
+		if([DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] showFromOrientation:arg1 toOrientation:[[UIDevice currentDevice] orientation]];
+		}
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
-	// hide button
-	if ([DGUndoRotation sharedInstance]) {
-		[[DGUndoRotation sharedInstance] forceHide];
-	}
-	// unlock orientation if needed
-	if (boolValueForKey(kIsUnlockEnabled, NO)) {
-		if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
-			[[%c(SBOrientationLockManager) sharedInstance] unlock];
-		} else {
-			CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+		// hide button
+		if ([DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] forceHide];
+		}
+		// unlock orientation if needed
+		if (boolValueForKey(kIsUnlockEnabled, NO)) {
+			if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+				[[%c(SBOrientationLockManager) sharedInstance] unlock];
+			} else {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+			}
 		}
 	}
 	%orig;
 }
 -(void)_launchIcon:(id)arg1 {
-	// hide button
-	if ([DGUndoRotation sharedInstance]) {
-		[[DGUndoRotation sharedInstance] forceHide];
-	}
-	// unlock orientation if needed
-	if (boolValueForKey(kIsUnlockEnabled, NO)) {
-		if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
-			[[%c(SBOrientationLockManager) sharedInstance] unlock];
-		} else {
-			CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+		// hide button
+		if ([DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] forceHide];
+		}
+		// unlock orientation if needed
+		if (boolValueForKey(kIsUnlockEnabled, NO)) {
+			if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+				[[%c(SBOrientationLockManager) sharedInstance] unlock];
+			} else {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+			}
 		}
 	}
 	%orig;	
 }
 -(void)_lockScreenUIWillLock:(id)arg1 {
-	// hide button
-	if ([DGUndoRotation sharedInstance]) {
-		[[DGUndoRotation sharedInstance] forceHide];
-	}
-	// unlock orientation if needed
-	if (boolValueForKey(kIsUnlockEnabled, NO)) {
-		if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
-			[[%c(SBOrientationLockManager) sharedInstance] unlock];
-		} else {
-			CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+		// hide button
+		if ([DGUndoRotation sharedInstance]) {
+			[[DGUndoRotation sharedInstance] forceHide];
+		}
+		// unlock orientation if needed
+		if (boolValueForKey(kIsUnlockEnabled, NO)) {
+			if (%c(SBOrientationLockManager) && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+				[[%c(SBOrientationLockManager) sharedInstance] unlock];
+			} else {
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
+			}
 		}
 	}
 	%orig;
 }
 -(void)viewDidAppear:(BOOL)arg1 {
 	%orig;
-	// don't do anything if control window is visible (activator action)
-	if (isControlWindowVisible) {
-		return;
-	}
-	// display current orientation button if needed
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
-		NSInteger orientation = [[UIDevice currentDevice] orientation];
-		[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
+	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+		// don't do anything if control window is visible (activator action)
+		if (isControlWindowVisible) {
+			return;
+		}
+		// display current orientation button if needed
+		if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
+			NSInteger orientation = [[UIDevice currentDevice] orientation];
+			[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
+		}
 	}
 }
 %end
@@ -795,16 +813,10 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	}
 
 	// home screen or application screen
-	if (boolValueForKey(kIsEnabled, YES)) {
-		if (%c(SBIconController)) {
-			if (boolValueForKey(kHomescreenEnabled, YES)) {
-				%init(homescreen);
-			}
-		} else {
-			if (!getPerApp([NSBundle mainBundle].bundleIdentifier, kWhitelsitPrefix, NO)) {
-				%init(applications);
-			}
-		}
+	if (%c(SBIconController)) {
+		%init(homescreen);
+	} else {
+		%init(applications);
 	}
 
 	// controlwindow visibility listener
