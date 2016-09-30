@@ -149,8 +149,8 @@
 			<string>Specific</string>
 			<key>footerText</key>
 			<string>Enable "Alternatie Mode" if you do not see the button in the application.
-Enable the button on homescreen (respring required).
-Whitelist applications to disable button in (does not effect activator actions and application restart is required).
+Enable the button on homescreen.
+Whitelist applications to disable button in (does not effect activator actions).
 Note: Current Mode is part of the alternative method and there is no way of disabling it.</string>
 		</dict>
 		<dict>

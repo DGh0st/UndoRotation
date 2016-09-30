@@ -509,7 +509,7 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
-	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {	
+	if (boolValueForKey(kIsEnabled, YES)) {	
 		// hide button
 		if ([DGUndoRotation sharedInstance]) {
 			[[DGUndoRotation sharedInstance] forceHide];
@@ -527,7 +527,7 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 }
 -(void)viewDidAppear:(BOOL)arg1 {
 	%orig;
-	if (boolValueForKey(kIsEnabled, YES) && !getPerApp([[NSBundle mainBundle] bundleIdentifier], kWhitelsitPrefix, NO)) {
+	if (boolValueForKey(kIsEnabled, YES)) {
 		// don't do anything if control window is displaying (activator action)
 		if ([[self storyboardIdentifier] isEqualToString:@"UndoRotationViewController"] || isControlWindowVisible) {
 			return;
@@ -670,7 +670,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	}
 }
 -(void)viewWillDisappear:(BOOL)arg1 {
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+	if (boolValueForKey(kIsEnabled, YES)) {
 		// hide button
 		if ([DGUndoRotation sharedInstance]) {
 			[[DGUndoRotation sharedInstance] forceHide];
@@ -687,7 +687,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	%orig;
 }
 -(void)_launchIcon:(id)arg1 {
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+	if (boolValueForKey(kIsEnabled, YES)) {
 		// hide button
 		if ([DGUndoRotation sharedInstance]) {
 			[[DGUndoRotation sharedInstance] forceHide];
@@ -704,7 +704,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	%orig;	
 }
 -(void)_lockScreenUIWillLock:(id)arg1 {
-	if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kHomescreenEnabled, YES)) {
+	if (boolValueForKey(kIsEnabled, YES)) {
 		// hide button
 		if ([DGUndoRotation sharedInstance]) {
 			[[DGUndoRotation sharedInstance] forceHide];
@@ -728,7 +728,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 			return;
 		}
 		// display current orientation button if needed
-		if (boolValueForKey(kIsEnabled, YES) && boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
+		if ( boolValueForKey(kIsCurrentEnabled, NO) && [DGUndoRotation sharedInstance]) {
 			NSInteger orientation = [[UIDevice currentDevice] orientation];
 			[[DGUndoRotation sharedInstance] showFromOrientation:orientation toOrientation:orientation];
 		}
@@ -769,7 +769,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 %ctor {
 	// setup preferences
 	preferencesChanged();
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)preferencesChanged, kSettingsChangedNotification, NULL, CFNotificationSuspensionBehaviorCoalesce);
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)preferencesChanged, kSettingsChangedNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
 	// setup the tweak instance
 	[DGUndoRotation sharedInstance];
