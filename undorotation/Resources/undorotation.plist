@@ -8,7 +8,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Select the mode for the tweak.</string>
+			<string>Select the mode for the tweak (Recommend application restart if enabling/disabling tweak).</string>
 		</dict>
 		<dict>
 			<key>cell</key>
