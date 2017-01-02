@@ -1,7 +1,7 @@
 Package: com.dgh0st.undorotation
 Name: UndoRotation
 Depends: mobilesubstrate, preferenceloader, applist
-Version: 0.0.9
+Version: 0.0.11
 Architecture: iphoneos-arm
 Description: Undo last rotation by taping the button and and ability to lock orientation.
 Maintainer: DGh0st <deeppwnage@yahoo.com>

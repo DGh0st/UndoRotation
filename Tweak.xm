@@ -48,12 +48,15 @@
 // preference keys
 #define kIsEnabled @"isEnabled"
 #define kMode @"mode" // 0 = undo rotation only, 1 = lock orientation only, 2 = both
+#define kIsLabelEnabled @"isLabelEnabled"
 #define kDisplaySeconds @"displaySeconds"
 #define kIsUndoEnabled @"isUndoEnabled"
 #define kIsCurrentEnabled @"isCurrentEnabled"
 #define kIsUnlockEnabled @"isUnlockEnabled"
 #define kButtonOpacity @"buttonOpacity"
 #define kButtonCorner @"buttonCorner"
+#define kButtonSize @"buttonWidth"
+#define kButtonRoundness @"buttonRoundness"
 #define kAltModePrefix @"AltMode-"
 #define kWhitelsitPrefix @"WhiteListApp-"
 #define kHomescreenEnabled @"isHomescreenEnabled"
@@ -79,9 +82,10 @@
 #define kOrientationNotificationLockOrUnlock (CFStringRef)@"com.dgh0st.undorotation.lockorunlock"
 #define kControlWindowNotificationToggle (CFStringRef)@"com.dgh0st.undorotation.controlwindowtoggle"
 
+#define UIColorFromRGB(rgbValue) [UIColor colorWithRed:((CGFloat)((rgbValue & 0xFF0000) >> 16))/255.0f green:((CGFloat)((rgbValue & 0xFF00) >> 8))/255.0f blue:((CGFloat)(rgbValue & 0xFF))/255.0f alpha:1.0f]
+
 BOOL isShowing = NO;
 BOOL isControlWindowVisible = NO;
-//DGUndoRotation *temp = nil;
 NSInteger resetToOrientation = -1;
 NSDictionary *prefs = nil;
 
@@ -430,20 +434,45 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 		if (image && _currentDisplayedMode != -1) {
 			NSInteger selectedCorner = intValueForKey(kButtonCorner, 0);
 			CGSize appSize = [[UIScreen mainScreen] bounds].size;
+			CGSize statusBarSize = [UIApplication sharedApplication].statusBarFrame.size;
+			NSInteger buttonSize = intValueForKey(kButtonSize, 64);
+			NSInteger labelHeight = 0;
+			if (boolValueForKey(kIsLabelEnabled, false)) {
+				// set the label
+				labelHeight = buttonSize / 4;
+				[_undoButton setContentVerticalAlignment:UIControlContentVerticalAlignmentBottom];
+				if (_currentDisplayedMode == 0) {
+					[_undoButton setTitle:@"Undo" forState:UIControlStateNormal];
+				} else if (_currentDisplayedMode == 1) {
+					[_undoButton setTitle:@"Lock" forState:UIControlStateNormal];
+				} else if (_currentDisplayedMode == 2) {
+					[_undoButton setTitle:@"Undo & Lock" forState:UIControlStateNormal];
+				}
+				_undoButton.titleLabel.adjustsFontSizeToFitWidth = YES;
+				_undoButton.titleLabel.font = [UIFont systemFontOfSize:labelHeight];
+				[_undoButton layoutIfNeeded];
+			}
+			// set the icon
 			if (selectedCorner == 0) { // top left
-				_undoButton.frame = CGRectMake(16, 32, 64, 64);
+				_undoButton.frame = CGRectMake(buttonSize / 4, buttonSize / 4 + statusBarSize.height, buttonSize, buttonSize + labelHeight / 2);
 				_undoButton.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin;
 			} else if (selectedCorner == 1) { // top right
-				_undoButton.frame = CGRectMake(appSize.width - 80, 32, 64, 64);
+				_undoButton.frame = CGRectMake(appSize.width - buttonSize * 1.25f, buttonSize / 4 + statusBarSize.height, buttonSize, buttonSize + labelHeight / 2);
 				_undoButton.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleLeftMargin;
 			} else if (selectedCorner == 2) { // bottom left
-				_undoButton.frame = CGRectMake(16, appSize.height - 80, 64, 64);
+				_undoButton.frame = CGRectMake(buttonSize / 4, appSize.height - buttonSize * 1.25f - labelHeight, buttonSize, buttonSize + labelHeight / 2);
 				_undoButton.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleRightMargin;
 			} else if (selectedCorner == 3) { // bottom right
-				_undoButton.frame = CGRectMake(appSize.width - 80, appSize.height - 80, 64, 64);
+				_undoButton.frame = CGRectMake(appSize.width - buttonSize * 1.25f, appSize.height - buttonSize * 1.25f - labelHeight, buttonSize, buttonSize + labelHeight / 2);
 				_undoButton.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin;
 			}
-			[_undoButton setBackgroundImage:image forState:UIControlStateNormal];
+			_undoButton.layer.cornerRadius = doubleValueForKey(kButtonRoundness, 5.0f);
+			_undoButton.backgroundColor = UIColorFromRGB(0xCED1D6);
+			_undoButton.clipsToBounds = YES;
+			UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
+			imageView.frame = CGRectMake(0, 0, buttonSize, buttonSize);
+			imageView.contentMode = UIViewContentModeScaleAspectFill;
+			[_undoButton addSubview:imageView];
 			[_undoButton setAlpha:doubleValueForKey(kButtonOpacity, 0.8)];
 		} else {
 			[self forceHide:_undoButton];
@@ -813,10 +842,16 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 	}
 
 	// home screen or application screen
-	if (%c(SBIconController)) {
-		%init(homescreen);
-	} else {
-		%init(applications);
+	NSArray *args = [[NSClassFromString(@"NSProcessInfo") processInfo] arguments];
+	if (args.count != 0) {
+		NSString *execPath = args[0];
+		if (execPath) {
+			if ([[execPath lastPathComponent] isEqualToString:@"SpringBoard"] && %c(SBIconController)) {
+				%init(homescreen);
+			} else if (execPath && ([execPath rangeOfString:@"/Application"].location != NSNotFound)) {
+				%init(applications);
+			}
+		}	
 	}
 
 	// controlwindow visibility listener
