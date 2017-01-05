@@ -546,7 +546,7 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 		}
 		// unlock orientation if enabled
 		if (boolValueForKey(kIsUnlockEnabled, NO)) {
-			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
+			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]))) {
 				[[%c(SBOrientationLockManager) sharedInstance] unlock];
 			} else {
 				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
@@ -599,14 +599,14 @@ static BOOL getPerApp(NSString *appId, NSString *prefix, BOOL defaultValue) {
 static inline void lockRotation(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 	// orientation lock callback handler
 	if (name == kOrientationNotificationLockOrUnlock) {
-		if (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+		if (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
 			[[%c(SBOrientationLockManager) sharedInstance] unlock];
 		} else {
 			[[%c(SBOrientationLockManager) sharedInstance] lock:[[UIDevice currentDevice] orientation]];
 		}
 		return;
 	} else if (name == kOrientationUnlockNotification) {
-		if (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]) {
+		if (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
 			[[%c(SBOrientationLockManager) sharedInstance] unlock];
 		}
 		return;
@@ -623,7 +623,7 @@ static inline void lockRotation(CFNotificationCenterRef center, void *observer, 
 		[[UIDevice currentDevice] setOrientation:UIInterfaceOrientationLandscapeRight];
 		resetToOrientation = UIInterfaceOrientationLandscapeRight;
 	}
-	if (boolValueForKey(kIsUndoEnabled, NO) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
+	if (boolValueForKey(kIsUndoEnabled, NO) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]))) {
 		[[%c(SBOrientationLockManager) sharedInstance] unlock];
 	} else {
 		[[%c(SBOrientationLockManager) sharedInstance] lock:resetToOrientation];
@@ -707,7 +707,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		}
 		// unlock orientation if needed
 		if (boolValueForKey(kIsUnlockEnabled, NO)) {
-			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
+			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]))) {
 				[[%c(SBOrientationLockManager) sharedInstance] unlock];
 			} else {
 				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
@@ -724,7 +724,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		}
 		// unlock orientation if needed
 		if (boolValueForKey(kIsUnlockEnabled, NO)) {
-			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
+			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]))) {
 				[[%c(SBOrientationLockManager) sharedInstance] unlock];
 			} else {
 				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
@@ -741,7 +741,7 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 		}
 		// unlock orientation if needed
 		if (boolValueForKey(kIsUnlockEnabled, NO)) {
-			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || [[%c(SBOrientationLockManager) sharedInstance] isUserLocked])) {
+			if (%c(SBOrientationLockManager) && (([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isLocked]) || ([[%c(SBOrientationLockManager) sharedInstance] respondsToSelector:@selector(isUserLocked)] && [[%c(SBOrientationLockManager) sharedInstance] isUserLocked]))) {
 				[[%c(SBOrientationLockManager) sharedInstance] unlock];
 			} else {
 				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kOrientationUnlockNotification, NULL, NULL, YES);
