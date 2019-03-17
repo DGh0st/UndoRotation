@@ -91,6 +91,11 @@ NSInteger resetToOrientation = -1;
 NSDictionary *prefs = nil;
 
 static void reloadPrefs() {
+	if (prefs != nil) {
+		[prefs release];
+		prefs = nil;
+	}
+
 	if ([NSHomeDirectory() isEqualToString:@"/var/mobile"]) {
 		CFArrayRef keyList = CFPreferencesCopyKeyList((CFStringRef)kIdentifier, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
 		if (keyList) {
@@ -101,7 +106,7 @@ static void reloadPrefs() {
 			CFRelease(keyList);
 		}
 	} else {
-		prefs = [NSDictionary dictionaryWithContentsOfFile:kSettingsPath];
+		prefs = [[NSDictionary alloc] initWithContentsOfFile:kSettingsPath];
 	}
 }
 
@@ -794,6 +799,11 @@ static inline void activatorRotateNotification(CFNotificationCenterRef center, v
 
 	// remove controlwindow visibility listener
 	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, kControlWindowNotificationToggle, NULL);
+
+	if (prefs != nil) {
+		[prefs release];
+		prefs = nil;
+	}
 }
 
 %ctor {
